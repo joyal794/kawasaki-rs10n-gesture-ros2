@@ -31,8 +31,6 @@ class GestureDetectorNode(Node):
         self.last_detected_command = "UNKNOWN"
         self.last_published_command = "UNKNOWN"
         self.stable_count = 0
-
-        # Command must be stable for these many frames
         self.required_stable_frames = 8
 
         self.timer = self.create_timer(0.1, self.timer_callback)
@@ -41,21 +39,25 @@ class GestureDetectorNode(Node):
         self.get_logger().info('Publishing commands to /gesture_command')
 
     def count_fingers(self, hand_landmarks):
-        finger_tips = [4, 8, 12, 16, 20]
+        """
+        Count only 4 fingers:
+        index, middle, ring, pinky.
+        Thumb is ignored because it is unstable in webcam.
+        """
+
         fingers = []
 
-        # Thumb
-        if hand_landmarks.landmark[4].x < hand_landmarks.landmark[3].x:
-            fingers.append(1)
-        else:
-            fingers.append(0)
+        # Index finger
+        fingers.append(1 if hand_landmarks.landmark[8].y < hand_landmarks.landmark[6].y else 0)
 
-        # Index, middle, ring, pinky
-        for tip in finger_tips[1:]:
-            if hand_landmarks.landmark[tip].y < hand_landmarks.landmark[tip - 2].y:
-                fingers.append(1)
-            else:
-                fingers.append(0)
+        # Middle finger
+        fingers.append(1 if hand_landmarks.landmark[12].y < hand_landmarks.landmark[10].y else 0)
+
+        # Ring finger
+        fingers.append(1 if hand_landmarks.landmark[16].y < hand_landmarks.landmark[14].y else 0)
+
+        # Pinky finger
+        fingers.append(1 if hand_landmarks.landmark[20].y < hand_landmarks.landmark[18].y else 0)
 
         return sum(fingers)
 
@@ -70,8 +72,6 @@ class GestureDetectorNode(Node):
             return "PROCESS_2"
         elif finger_count == 4:
             return "PROCESS_3"
-        elif finger_count == 5:
-            return "PAUSE"
         else:
             return "UNKNOWN"
 
@@ -136,7 +136,7 @@ class GestureDetectorNode(Node):
 
         cv2.putText(
             frame,
-            '0=STOP  1=HOME  2=P1  3=P2  4=P3  5=PAUSE',
+            '0=STOP  1=HOME  2=P1  3=P2  4=P3',
             (20, 80),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.65,
