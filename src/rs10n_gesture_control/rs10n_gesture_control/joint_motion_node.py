@@ -34,7 +34,7 @@ class JointMotionNode(Node):
         self.current_positions = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         self.target_positions = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
-        # rad per update cycle
+        # Smaller value = smoother and slower motion
         self.motion_speed = 0.0015
 
         self.stopped = False
@@ -48,7 +48,23 @@ class JointMotionNode(Node):
     def deg(self, value):
         return math.radians(value)
 
+    def clamp_deg(self, value, lower, upper):
+        return max(lower, min(value, upper))
+
     def set_target_deg(self, j1, j2, j3, j4, j5, j6, name):
+        """
+        Set target position safely.
+        Values are clamped inside real Kawasaki RS010N joint limits.
+        """
+
+        # Kawasaki RS010N joint limits in degrees
+        j1 = self.clamp_deg(j1, -180, 180)
+        j2 = self.clamp_deg(j2, -105, 145)
+        j3 = self.clamp_deg(j3, -163, 150)
+        j4 = self.clamp_deg(j4, -270, 270)
+        j5 = self.clamp_deg(j5, -145, 145)
+        j6 = self.clamp_deg(j6, -360, 360)
+
         self.target_positions = [
             self.deg(j1),
             self.deg(j2),
@@ -57,37 +73,29 @@ class JointMotionNode(Node):
             self.deg(j5),
             self.deg(j6)
         ]
+
         self.stopped = False
         self.paused = False
-        self.get_logger().info(f'Moving to {name}: {[j1, j2, j3, j4, j5, j6]} deg')
+
+        self.get_logger().info(
+            f'Moving to {name}: {[j1, j2, j3, j4, j5, j6]} deg'
+        )
 
     def command_callback(self, msg):
         command = msg.data.strip().upper()
         self.get_logger().info(f'Received command: {command}')
 
         if command == "HOME":
-            self.set_target_deg(
-                0, 0, 0, 0, 0, 0,
-                "HOME"
-            )
+            self.set_target_deg(0, 0, 0, 0, 0, 0, "HOME")
 
         elif command == "PROCESS_1":
-            self.set_target_deg(
-                30, 25, -35, 20, 30, 0,
-                "PROCESS_1"
-            )
+            self.set_target_deg(30, 25, -35, 20, 30, 0, "PROCESS_1")
 
         elif command == "PROCESS_2":
-            self.set_target_deg(
-                -35, 35, -25, -30, 25, 45,
-                "PROCESS_2"
-            )
+            self.set_target_deg(-35, 35, -25, -30, 25, 45, "PROCESS_2")
 
         elif command == "PROCESS_3":
-            self.set_target_deg(
-                60, 15, -45, 90, -20, 120,
-                "PROCESS_3"
-            )
+            self.set_target_deg(60, 15, -45, 90, -20, 120, "PROCESS_3")
 
         elif command == "TEST_J1":
             self.set_target_deg(45, 0, 0, 0, 0, 0, "TEST_J1")
