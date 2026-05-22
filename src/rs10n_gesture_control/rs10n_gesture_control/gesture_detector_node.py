@@ -10,10 +10,8 @@ class GestureDetectorNode(Node):
     def __init__(self):
         super().__init__('gesture_detector_node')
 
-        # This topic is already used by your joint_motion_node
         self.publisher_ = self.create_publisher(String, '/gesture_command', 10)
 
-        # MediaPipe hand detector
         self.mp_hands = mp.solutions.hands
         self.mp_draw = mp.solutions.drawing_utils
 
@@ -23,7 +21,6 @@ class GestureDetectorNode(Node):
             min_tracking_confidence=0.7
         )
 
-        # Laptop webcam
         self.cap = cv2.VideoCapture(0)
 
         if not self.cap.isOpened():
@@ -31,35 +28,29 @@ class GestureDetectorNode(Node):
         else:
             self.get_logger().info('Webcam opened successfully.')
 
-        # Used to avoid accidental commands
-        self.last_command = "UNKNOWN"
+        self.last_detected_command = "UNKNOWN"
+        self.last_published_command = "UNKNOWN"
         self.stable_count = 0
 
-        # Run camera check every 0.1 second
+        # Command must be stable for these many frames
+        self.required_stable_frames = 8
+
         self.timer = self.create_timer(0.1, self.timer_callback)
 
-    def count_fingers(self, hand_landmarks):
-        """
-        Counts how many fingers are open.
-        0 fingers = fist
-        1 finger  = HOME
-        2 fingers = PROCESS_1
-        3 fingers = PROCESS_2
-        5 fingers = STOP
-        """
+        self.get_logger().info('Gesture detector started.')
+        self.get_logger().info('Publishing commands to /gesture_command')
 
+    def count_fingers(self, hand_landmarks):
         finger_tips = [4, 8, 12, 16, 20]
         fingers = []
 
-        # Thumb check
-        # This simple method may depend on left/right hand.
-        if hand_landmarks.landmark[finger_tips[0]].x < hand_landmarks.landmark[finger_tips[0] - 1].x:
+        # Thumb
+        if hand_landmarks.landmark[4].x < hand_landmarks.landmark[3].x:
             fingers.append(1)
         else:
             fingers.append(0)
 
-        # Other 4 fingers
-        # If fingertip is above middle joint, finger is open
+        # Index, middle, ring, pinky
         for tip in finger_tips[1:]:
             if hand_landmarks.landmark[tip].y < hand_landmarks.landmark[tip - 2].y:
                 fingers.append(1)
@@ -70,36 +61,40 @@ class GestureDetectorNode(Node):
 
     def command_from_fingers(self, finger_count):
         if finger_count == 0:
-            return "PAUSE"
+            return "STOP"
         elif finger_count == 1:
             return "HOME"
         elif finger_count == 2:
             return "PROCESS_1"
         elif finger_count == 3:
             return "PROCESS_2"
+        elif finger_count == 4:
+            return "PROCESS_3"
         elif finger_count == 5:
-            return "STOP"
+            return "PAUSE"
         else:
             return "UNKNOWN"
 
     def publish_stable_command(self, command):
-        """
-        Publish command only if same gesture is detected several times.
-        This prevents accidental robot movement.
-        """
+        if command == "UNKNOWN":
+            self.stable_count = 0
+            self.last_detected_command = "UNKNOWN"
+            return
 
-        if command == self.last_command:
+        if command == self.last_detected_command:
             self.stable_count += 1
         else:
-            self.stable_count = 0
-            self.last_command = command
+            self.stable_count = 1
+            self.last_detected_command = command
 
-        # 5 stable frames = command accepted
-        if self.stable_count == 5 and command != "UNKNOWN":
-            msg = String()
-            msg.data = command
-            self.publisher_.publish(msg)
-            self.get_logger().info(f'Published command: {command}')
+        if self.stable_count >= self.required_stable_frames:
+            if command != self.last_published_command:
+                msg = String()
+                msg.data = command
+                self.publisher_.publish(msg)
+
+                self.last_published_command = command
+                self.get_logger().info(f'Published command: {command}')
 
     def timer_callback(self):
         ret, frame = self.cap.read()
@@ -108,10 +103,7 @@ class GestureDetectorNode(Node):
             self.get_logger().warn('Could not read webcam frame.')
             return
 
-        # Mirror image, like selfie camera
         frame = cv2.flip(frame, 1)
-
-        # Convert OpenCV BGR image to RGB for MediaPipe
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         result = self.hands.process(rgb_frame)
@@ -132,7 +124,6 @@ class GestureDetectorNode(Node):
 
         self.publish_stable_command(command)
 
-        # Show text on camera window
         cv2.putText(
             frame,
             f'Fingers: {finger_count}  Command: {command}',
@@ -145,17 +136,16 @@ class GestureDetectorNode(Node):
 
         cv2.putText(
             frame,
-            '0=PAUSE  1=HOME  2=P1  3=P2  5=STOP',
+            '0=STOP  1=HOME  2=P1  3=P2  4=P3  5=PAUSE',
             (20, 80),
             cv2.FONT_HERSHEY_SIMPLEX,
-            0.7,
+            0.65,
             (255, 255, 255),
             2
         )
 
         cv2.imshow('RS10N Gesture Control', frame)
 
-        # Press q to quit webcam window
         if cv2.waitKey(1) & 0xFF == ord('q'):
             self.get_logger().info('Closing gesture detector.')
             self.cap.release()
