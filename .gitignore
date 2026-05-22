@@ -1,0 +1,26 @@
+# ROS2 build folders
+build/
+install/
+log/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Large original CAD backup files
+cad/
+*.step
+*.stp
+
+# RViz temporary files
+*.autosave

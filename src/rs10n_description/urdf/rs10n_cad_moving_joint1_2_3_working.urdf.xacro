@@ -1,0 +1,113 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="rs10n_cad_moving">
+
+  <link name="world"/>
+
+  <link name="base_link">
+    <visual name="cad_base_mesh">
+      <origin xyz="-0.0015 0.0629 -0.0986" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://rs10n_description/meshes/base.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="world_to_base" type="fixed">
+    <parent link="world"/>
+    <child link="base_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <link name="link_1">
+    <visual name="cad_link_1">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://rs10n_description/meshes/link_1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="joint_1" type="revolute">
+  <parent link="base_link"/>
+  <child link="link_1"/>
+  <origin xyz="0 0 0" rpy="0 0 0"/>
+  <axis xyz="0 0 1"/>
+  <limit lower="-3.1416" upper="3.1416" effort="100" velocity="4.36"/>
+</joint>
+
+  <link name="link_2">
+  <visual name="cad_link_2">
+    <origin xyz="0.194 -0.101305 -0.427640" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://rs10n_description/meshes/link_2.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </visual>
+</link>
+
+  <joint name="joint_2" type="revolute">
+  <parent link="link_1"/>
+  <child link="link_2"/>
+  <origin xyz="-0.194 0.101305 0.427640" rpy="0 0 0"/>
+  <axis xyz="-1 0 0"/>
+  <limit lower="-1.8326" upper="2.5307" effort="100" velocity="4.36"/>
+</joint>
+  
+    <link name="link_3">
+    <visual name="cad_link_3">
+      <origin xyz="-0.0745 -0.1000 -1.0800" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://rs10n_description/meshes/link_3.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="joint_3" type="revolute">
+  <parent link="link_2"/>
+  <child link="link_3"/>
+  <origin xyz="0.2685 -0.001305 0.652360" rpy="0 0 0"/>
+  <axis xyz="1 0 0"/>
+  <limit lower="-2.8449" upper="2.6180" effort="100" velocity="4.36"/>
+</joint>
+    <link name="link_4">
+    <visual name="cad_link_4">
+      <origin xyz="-0.0745 -0.1000 -1.0800" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://rs10n_description/meshes/link_4.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="joint_4_fixed" type="fixed">
+    <parent link="link_3"/>
+    <child link="link_4"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+    <link name="link_5">
+    <visual name="cad_link_5">
+      <origin xyz="-0.0745 -0.1000 -1.0800" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://rs10n_description/meshes/link_5.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="joint_5_fixed" type="fixed">
+    <parent link="link_4"/>
+    <child link="link_5"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+    <link name="link_6">
+    <visual name="cad_link_6">
+      <origin xyz="-0.0745 -0.1000 -1.0800" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://rs10n_description/meshes/link_6.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="joint_6_fixed" type="fixed">
+    <parent link="link_5"/>
+    <child link="link_6"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+</robot>
